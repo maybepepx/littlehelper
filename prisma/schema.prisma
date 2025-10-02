@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id             String   @id @default(cuid())
+  title          String
+  productType    String
+  researchGoal   String
+  targetAudience String
+  personasCount  Int
+  status         ProjectStatus @default(DRAFT)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+  personas       Persona[]
+  interviews     Interview[]
+  report         Report?
+}
+
+enum ProjectStatus { 
+  DRAFT 
+  RUNNING 
+  COMPLETE 
+}
+
+model Persona {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  age         Int
+  occupation  String
+  hobbies     String
+  personality String
+  goals       String
+  painPoints  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  interviews  Interview[]
+}
+
+model Interview {
+  id            String   @id @default(cuid())
+  projectId     String
+  personaId     String
+  transcript    Json
+  questionCount Int
+  createdAt     DateTime @default(now())
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  persona       Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  projectId   String   @unique
+  validated   String   // markdown
+  overview    String   // markdown
+  keyFindings Json     // {frictionPoints: string[], highlights: string[]}
+  pdfPath     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}

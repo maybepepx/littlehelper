@@ -1,0 +1,14 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run db:generate && npm run build",
+  "installCommand": "npm install",
+  "functions": {
+    "app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "ANTHROPIC_API_KEY": "@anthropic_api_key",
+    "DATABASE_URL": "@database_url"
+  }
+}

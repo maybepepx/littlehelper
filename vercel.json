@@ -6,9 +6,5 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "env": {
-    "ANTHROPIC_API_KEY": "@anthropic_api_key",
-    "DATABASE_URL": "@database_url"
   }
 }

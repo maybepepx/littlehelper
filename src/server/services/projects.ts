@@ -30,7 +30,9 @@ export async function createProject(input: ProjectInput) {
       personas: [],
       interviews: [],
       report: null,
-      ...input
+      ...input,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
     
     mockProjects.set(mockProject.id, mockProject)

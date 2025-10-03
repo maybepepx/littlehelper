@@ -32,7 +32,10 @@ export async function createPersonas(projectId: string, personas: Array<{
     }))
     
     mockPersonas.set(projectId, mappedPersonas)
-    return { count: mappedPersonas.length }
+    return { 
+      count: mappedPersonas.length,
+      mockPersonas: mappedPersonas // Return the personas for ID mapping
+    }
   }
 }
 

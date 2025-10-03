@@ -37,11 +37,34 @@ export async function POST(
       // Generate complete research
       const aiResponse = await generateCompleteResearch(input)
 
-      // Create personas
-      await createPersonas(id, aiResponse.personas)
+      // Create personas first
+      const personasResult = await createPersonas(id, aiResponse.personas)
+      
+      // Map persona IDs from AI response to actual persona IDs
+      const personaIdMap = new Map()
+      if (personasResult && typeof personasResult === 'object' && 'mockPersonas' in personasResult) {
+        // If using mock data, use the returned mock personas
+        const mockPersonas = personasResult.mockPersonas || []
+        mockPersonas.forEach((persona: any, index: number) => {
+          personaIdMap.set(index, persona.id)
+        })
+      } else {
+        // If using database, fetch created personas
+        const createdPersonas = await personasResult?.creates || []
+        createdPersonas.forEach((persona: any, index: number) => {
+          personaIdMap.set(index, persona.id)
+        })
+      }
+      
+      // Map interviews with correct persona IDs
+      const mappedInterviews = aiResponse.interviews.map((interview, index) => ({
+        ...interview,
+        personaId: personaIdMap.get(index) || interview.personaId,
+        id: `mock_interview_${id}_${index}`
+      }))
 
       // Create interviews
-      await createInterviews(id, aiResponse.interviews)
+      await createInterviews(id, mappedInterviews)
 
       // Create report
       await createReport(id, aiResponse.report)
@@ -49,11 +72,35 @@ export async function POST(
       // Update status to complete
       await updateProjectStatus(id, 'COMPLETE')
 
+      // Return properly formatted data for frontend
+      const responsePersonas = aiResponse.personas.map((persona, index) => ({
+        id: personaIdMap.get(index) || `mock_persona_${id}_${index}`,
+        ...persona,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }))
+
+      const responseInterviews = aiResponse.interviews.map((interview, index) => ({
+        id: `mock_interview_${id}_${index}`,
+        personaId: personaIdMap.get(index) || interview.personaId,
+        transcript: interview.transcript,
+        questionCount: interview.transcript.length,
+        persona: { name: aiResponse.personas[index]?.name || 'Unknown Persona' },
+        createdAt: new Date().toISOString()
+      }))
+
+      const responseReport = {
+        id: `mock_report_${id}`,
+        ...aiResponse.report,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
       return NextResponse.json({
         success: true,
-        personas: aiResponse.personas,
-        interviews: aiResponse.interviews,
-        report: aiResponse.report,
+        personas: responsePersonas,
+        interviews: responseInterviews,
+        report: responseReport,
       })
     } catch (error) {
       // Update status back to draft on error

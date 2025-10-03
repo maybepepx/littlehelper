@@ -1,12 +1,10 @@
 'use client'
 
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { ProjectInput } from '@/lib/schemas'
 
 interface ProjectFormProps {
@@ -15,19 +13,23 @@ interface ProjectFormProps {
 }
 
 export function ProjectForm({ onSubmit, isLoading = false }: ProjectFormProps) {
-  const form = useForm<ProjectInput>({
-    resolver: zodResolver(ProjectInput),
-    defaultValues: {
-      title: '',
-      productType: '',
-      researchGoal: '',
-      targetAudience: '',
-      personasCount: 3,
-    },
+  const [formData, setFormData] = useState({
+    title: '',
+    productType: '',
+    researchGoal: '',
+    targetAudience: '',
+    personasCount: 3,
   })
 
-  const handleSubmit = async (data: ProjectInput) => {
-    await onSubmit(data)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const isValid = Object.values(formData).every(value => 
+      typeof value === 'string' ? value.trim().length > 0 : value > 0
+    )
+    
+    if (isValid) {
+      await onSubmit(formData as ProjectInput)
+    }
   }
 
   return (
@@ -39,97 +41,55 @@ export function ProjectForm({ onSubmit, isLoading = false }: ProjectFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Research Title</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="E-commerce Checkout Optimization" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Research Title</label>
+              <Input 
+                placeholder="E-commerce Checkout Optimization"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="productType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product Type</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Mobile checkout flow" 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Product Type</label>
+              <Input 
+                placeholder="Mobile checkout flow"
+                value={formData.productType}
+                onChange={(e) => setFormData({ ...formData, productType: e.target.value })}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="researchGoal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Research Goal</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Understand why users abandon the checkout process during payment step"
-                      rows={3}
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Research Goal</label>
+              <Textarea 
+                placeholder="Understand why users abandon the checkout process during payment step"
+                rows={3}
+                value={formData.researchGoal}
+                onChange={(e) => setFormData({ ...formData, researchGoal: e.target.value })}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="targetAudience"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Target Audience</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Online shoppers age 22-45 who have abandoned carts in the past month"
-                      rows={3}
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Target Audience</label>
+              <Textarea 
+                placeholder="Online shoppers age 22-45 who have abandoned carts in the past month"
+                rows={3}
+                value={formData.targetAudience}
+                onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
+              />
+            </div>
 
-            <FormField
-              control={form.control}
-              name="personasCount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Personas</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min="1" 
-                      max="12"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Number of Personas</label>
+              <Input 
+                type="number" 
+                min="1" 
+                max="12"
+                value={formData.personasCount}
+                onChange={(e) => setFormData({ ...formData, personasCount: parseInt(e.target.value) || 3 })}
+              />
+            </div>
 
             <Button 
               type="submit" 
@@ -139,7 +99,6 @@ export function ProjectForm({ onSubmit, isLoading = false }: ProjectFormProps) {
               {isLoading ? 'Generating Research Report...' : 'Start Research'}
             </Button>
           </form>
-        </Form>
       </CardContent>
     </Card>
   )

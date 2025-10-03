@@ -1,103 +1,235 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState } from 'react'
+import { ProjectForm } from '@/components/project-form'
+import { Sidebar } from '@/components/sidebar'
+import { TopbarActions } from '@/components/topbar-actions'
+import { PersonasTable } from '@/components/personas-table'
+import { PersonaDrawer } from '@/components/persona-drawer'
+import { InterviewAccordion } from '@/components/interview-accordion'
+import { ReportView } from '@/components/report-view'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ProjectInput } from '@/lib/schemas'
+
+interface Project {
+  id: string
+  title: string
+  productType: string
+  researchGoal: string
+  targetAudience: string
+  personasCount: number
+  status: 'DRAFT' | 'RUNNING' | 'COMPLETE'
+  createdAt: string
+  personas: Array<{
+    id: string
+    name: string
+    age: number
+    occupation: string
+    personality: string
+    painPoints: string
+    hobbies: string
+    goals: string
+  }>
+  interviews: Array<{
+    id: string
+    personaId: string
+    transcript: Array<{ question: string; answer: string }>
+    questionCount: number
+    persona: { name: string }
+  }>
+  report?: {
+    id: string
+    validated: string
+    overview: string
+    keyFindings: {
+      frictionPoints: string[]
+      highlights: string[]
+    }
+  }
+}
+
+export default function HomePage() {
+  const [currentProject, setCurrentProject] = useState<Project | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+  const [selectedPersona, setSelectedPersona] = useState<any>(null)
+  const [showPersonaDrawer, setShowPersonaDrawer] = useState(false)
+
+  const handleProjectSubmit = async (data: ProjectInput) => {
+    setIsCreating(true)
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+      
+      if (!response.ok) throw new Error('Failed to create project')
+      
+      const project = await response.json()
+      setCurrentProject(project)
+    } catch (error) {
+      console.error('Error creating project:', error)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const handleGeneratePersonas = async () => {
+    if (!currentProject) return
+
+    try {
+      const response = await fetch(`/api/projects/${currentProject.id}/personas`, {
+        method: 'POST'
+      })
+      
+      if (!response.ok) throw new Error('Failed to generate personas')
+      
+      const data = await response.json()
+      
+      // Update the current project with new data
+      const updatedProject: Project = {
+        ...currentProject,
+        status: 'COMPLETE',
+        personas: data.personas,
+        interviews: data.interviews,
+        report: data.report
+      }
+      
+      setCurrentProject(updatedProject)
+    } catch (error) {
+      console.error('Error generating personas:', error)
+    }
+  }
+
+  const handleExportPDF = async () => {
+    if (!currentProject?.report) return
+
+    try {
+      const response = await fetch(`/api/projects/${currentProject.id}/report.pdf`)
+      const blob = await response.blob()
+      
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${currentProject.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_report.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error exporting PDF:', error)
+    }
+  }
+
+  const handleDeleteProject = async () => {
+    if (!currentProject) return
+
+    if (confirm('Are you sure you want to delete this project?')) {
+      try {
+        const response = await fetch(`/api/projects/${currentProject.id}?type=soft`, {
+          method: 'DELETE'
+        })
+        
+        if (!response.ok) throw new Error('Failed to delete project')
+        
+        setCurrentProject(null)
+        setSelectedPersona(null)
+      } catch (error) {
+        console.error('Error deleting project:', error)
+      }
+    }
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div className="min-h-screen bg-background">
+      <Sidebar />
+      
+      <div className="ml-64 flex flex-col">
+        <TopbarActions
+          projectId={currentProject?.id}
+          status={currentProject?.status}
+          onGeneratePersonas={handleGeneratePersonas}
+          onExportPDF={handleExportPDF}
+          onDeleteProject={handleDeleteProject}
+          isLoading={isCreating}
         />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+        
+        <main className="flex-1 p-6">
+          {!currentProject ? (
+            <div className="max-w-2xl mx-auto">
+              <ProjectForm onSubmit={handleProjectSubmit} isLoading={isCreating} />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Project Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>{currentProject.title}</CardTitle>
+                  <CardDescription className="space-y-2">
+                    <div><strong>Product Type:</strong> {currentProject.productType}</div>
+                    <div><strong>Research Goal:</strong> {currentProject.researchGoal}</div>
+                    <div><strong>Target Audience:</strong> {currentProject.targetAudience}</div>
+                    <div><strong>Personas Count:</strong> {currentProject.personasCount}</div>
+                    <Separator />
+                    <div className="flex items-center gap-2">
+                      <span>Status:</span>
+                      <Badge variant="secondary">{currentProject.status}</Badge>
+                    </div>
+                  </CardDescription>
+                </CardHeader>
+              </Card>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+              {/* Show results if complete */}
+              {currentProject.status === 'COMPLETE' && (
+                <>
+                  {currentProject.personas && currentProject.personas.length > 0 && (
+                    <PersonasTable
+                      personas={currentProject.personas}
+                      onSelectPersona={setSelectedPersona}
+                    />
+                  )}
+
+                  {currentProject.interviews && currentProject.interviews.length > 0 && (
+                    <InterviewAccordion interviews={currentProject.interviews} />
+                  )}
+
+                  {currentProject.report && (
+                    <ReportView
+                      report={currentProject.report}
+                      projectId={currentProject.id}
+                      projectTitle={currentProject.title}
+                      onExportPDF={handleExportPDF}
+                    />
+                  )}
+                </>
+              )}
+
+              {/* Show button to generate if draft */}
+              {currentProject.status === 'DRAFT' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ready to Generate Research Data</CardTitle>
+                    <CardDescription>
+                      Click "Generate" in the top bar to create personas, conduct interviews, and generate reports using AI.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+
+      <PersonaDrawer
+        persona={selectedPersona}
+        isOpen={showPersonaDrawer}
+        onClose={() => {
+          setShowPersonaDrawer(false)
+          setSelectedPersona(null)
+        }}
+      />
     </div>
-  );
+  )
 }

@@ -59,6 +59,7 @@ export default function HomePage() {
   const handleProjectSubmit = async (data: ProjectInput) => {
     setIsCreating(true)
     try {
+      // First create the project
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -69,6 +70,10 @@ export default function HomePage() {
       
       const project = await response.json()
       setCurrentProject(project)
+      
+      // Then immediately start generating research
+      await handleGeneratePersonas()
+      
     } catch (error) {
       console.error('Error creating project:', error)
     } finally {

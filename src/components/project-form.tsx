@@ -33,9 +33,9 @@ export function ProjectForm({ onSubmit, isLoading = false }: ProjectFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Create New Research Project</CardTitle>
+        <CardTitle>Start Automated Research</CardTitle>
         <CardDescription>
-          Define your research parameters to generate realistic user personas and conduct AI-powered interviews.
+          Define your research parameters and automatically generate complete AI-powered research reports.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -136,7 +136,7 @@ export function ProjectForm({ onSubmit, isLoading = false }: ProjectFormProps) {
               disabled={isLoading}
               className="w-full"
             >
-              {isLoading ? 'Creating Project...' : 'Create Project'}
+              {isLoading ? 'Generating Research Report...' : 'Start Research'}
             </Button>
           </form>
         </Form>

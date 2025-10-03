@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ProjectForm } from '@/components/project-form'
 import { Sidebar } from '@/components/sidebar'
 import { TopbarActions } from '@/components/topbar-actions'
@@ -55,6 +55,29 @@ export default function HomePage() {
   const [isCreating, setIsCreating] = useState(false)
   const [selectedPersona, setSelectedPersona] = useState<any>(null)
   const [showPersonaDrawer, setShowPersonaDrawer] = useState(false)
+
+  useEffect(() => {
+    console.log('HomePage mounted successfully')
+  }, [])
+
+  // Error boundary check
+  const [hasError, setHasError] = useState(false)
+  
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">Something went wrong</h1>
+          <button 
+            onClick={() => setHasError(false)}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const handleProjectSubmit = async (data: ProjectInput) => {
     setIsCreating(true)
@@ -147,7 +170,8 @@ export default function HomePage() {
     }
   }
 
-  return (
+  try {
+    return (
     <div className="min-h-screen bg-background">
       <Sidebar />
       
@@ -236,5 +260,23 @@ export default function HomePage() {
         }}
       />
     </div>
-  )
+    )
+  } catch (error) {
+    console.error('Component render error:', error)
+    setHasError(true)
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-500 mb-4">Component Error</h1>
+          <p className="text-gray-600 mb-4">Something went wrong while rendering</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    )
+  }
 }
